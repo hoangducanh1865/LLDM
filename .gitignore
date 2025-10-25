@@ -209,7 +209,8 @@ __marimo__/
 .DS_Store
 debug/
 tmp/
-data/datasets/*
+# data/datasets/*
 !data/datasets/.gitkeep
+!data/datasets/modernbert_large_dataset/.gitkeep
 data/hf_cache/*
 !data/hf_cache/.gitkeep

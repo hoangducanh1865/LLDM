@@ -43,24 +43,3 @@ class Tokenizer:
         )
 
         return tokenizer
-def test_tokenizer():
-    tokenizer=Tokenizer.get_tokenizer()
-    text='Hello World'
-    ids=tokenizer(text,padding=True,return_tensors='pt')['input_ids'][0]
-    decoded=tokenizer.decode(ids,skip_special_tokens=False)
-    messages=[
-        {'role':'user','content':'What is the capital of Vietnam?'},
-        {'role':'assistant','content':'Hanoi'}
-    ]
-    encoded=tokenizer.apply_chat_template(messages,tokenize=True,add_special_tokens=True)
-    decoded=tokenizer.decode(encoded,skip_special_tokens=False)
-    print(decoded)
-    
-    messages=[
-        {'role':'user','content':'What is AI?'}
-    ]
-    encoded=tokenizer.apply_chat_template(messages,tokenize=True,add_special_tokens=True,add_generation_prompt=True)
-    decoded=tokenizer.decode(encoded,skip_special_tokens=False)
-    print(decoded)
-'''if __name__=='__main__':
-    test_tokenizer()'''
