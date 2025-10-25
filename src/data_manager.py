@@ -1,3 +1,4 @@
+import torch
 import time
 from src.tokenizer import Tokenizer
 from src.config import Config
@@ -87,7 +88,7 @@ class DataManager:
         tokenized_data=dataset.map(
             compute_tokens,
             batched=True,
-            batch_size=100,  # Small batch size
+            batch_size=args.batch_size,  # Small batch size
             num_proc=args.num_workers,
             remove_columns=['text']
         )
@@ -154,4 +155,16 @@ class DataManager:
             num_proc=args.num_workers
         )
         tokenized_data.save_to_disk(data_store_dir)
-                
+    @staticmethod
+    def SFTCollator(model_name='answerdotai/ModernBert-base'):
+        tokenizer=Tokenizer.get_tokenizer(model_name)
+        eos_token=tokenizer.eos_token_id
+        
+        # @QUESTION
+        def collate_fn(batch):
+            inputs=[torch.tensor(b['input_ids'],dtype=torch.long) for b in batch]
+            query_masks=[torch.tensor(b['query_mask']) for b in batch]
+            inputs=torch.nn.utils.rnn.pad_sequence(inputs,padding_value=eos_token,batch_first=True) # Add padding token to the end of short sentences
+            query_masks=torch.nn.utils.rnn.pad_sequence(query_masks,padding_value=1,batch_first=True) # Add mask token to the end of short sentences (token 1)
+            return {'input_ids':inputs,'query_mask':query_masks}
+        return collate_fn
