@@ -97,7 +97,7 @@ class DataManager:
         print(f'Saving tokenized dataset to: {data_store_dir}')
         tokenized_data.save_to_disk(data_store_dir)
     @staticmethod
-    def prepare_sft_train_dataset(args):
+    def prepare_sfttrain_dataset(args):
         context_length=args.context_length
         data_store_dir=args.data_store_dir
         cache_dir=args.hf_cache_dir
@@ -139,7 +139,7 @@ class DataManager:
             occurance=0
             is_answer=False
             for t in tokenized:
-                is_eos=(t==tokenizer.convert_tokens_to_id('<END_ID>'))
+                is_eos=(t==tokenizer.convert_tokens_to_ids('<END_ID>'))
                 if is_answer==False:
                     query_mask.append(0)
                 else:
@@ -156,7 +156,7 @@ class DataManager:
         )
         tokenized_data.save_to_disk(data_store_dir)
     @staticmethod
-    def SFTCollator(model_name='answerdotai/ModernBert-base'):
+    def SFTCollator(model_name):
         tokenizer=Tokenizer.get_tokenizer(model_name)
         eos_token=tokenizer.eos_token_id
         

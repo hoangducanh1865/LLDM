@@ -1,8 +1,9 @@
 import os
 import torch
 from tqdm import tqdm
+from src.config import Config
 class Trainer:
-    def __init__(self,args,accelerator,tokenizer,model,train_dataloader,eval_dataloader,optimizer,scheduler,loss_fn,expereiment_dir):
+    def __init__(self,args,accelerator,tokenizer,model,train_dataloader,eval_dataloader,optimizer,scheduler,loss_fn,experiment_dir):
         self.args=args
         self.accelerator=accelerator
         self.tokenizer=tokenizer
@@ -12,8 +13,9 @@ class Trainer:
         self.optimizer=optimizer
         self.scheduler=scheduler
         self.loss_fn=loss_fn
-        self.expereiment_dir=expereiment_dir
-    def pre_train(self):
+        self.experiment_dir=experiment_dir
+        self.device=Config.DEVICE
+    def pretrain(self):
         train=True
         completed_steps=0
         progress_bar=tqdm(range(completed_steps,self.args.num_training_steps),disable=not self.accelerator.is_local_main_process) # Since there are multiple processes so we need to just display the main one
@@ -50,6 +52,7 @@ class Trainer:
                 loss=loss.reshape(batch_size,seq_len)/t # Just for fairness, if t increase then loss decrease, if i decrease then loss increase
                 loss=loss.mean()
                 loss=loss/self.args.gradient_accumulation_steps
+                accumulate_loss+=loss
                 self.accelerator.backward(loss)
                 accumulate_step+=1
                 
@@ -140,10 +143,10 @@ class Trainer:
                         self.model.train()
                     
                     ### Checkpoint Model (Only need main process for this) ###
-                    if (completed_steps % self.args.checkpoint_interval == 0):
+                    '''if (completed_steps % self.args.checkpoint_interval == 0):
                         
                         ### Save Checkpoint ### 
-                        path_to_checkpoint = os.path.join(self.expereiment_dir, f"checkpoint_{completed_steps}")
+                        path_to_checkpoint = os.path.join(self.experiment_dir, f"checkpoint_{completed_steps}")
 
                         if self.accelerator.is_main_process:
                             progress_bar.write(f"Saving Checkpoint to {path_to_checkpoint}")
@@ -153,7 +156,7 @@ class Trainer:
 
                         ### Save checkpoint using only the main process ###
                         if self.accelerator.is_main_process:
-                            self.accelerator.save_state(output_dir=path_to_checkpoint)
+                            self.accelerator.save_state(output_dir=path_to_checkpoint)'''
                     
                     if completed_steps >= self.args.num_training_steps:
                         train = False
@@ -168,10 +171,10 @@ class Trainer:
                     ### Reset Loss Accumulate For Next Accumulation ###
                     accumulate_loss = 0
 
-        checkpoint_dir = os.path.join(self.expereiment_dir, f"final_model")
+        checkpoint_dir = os.path.join(self.experiment_dir, f"final_model")
         self.accelerator.save_state(output_dir=checkpoint_dir)
         self.accelerator.end_training()
-    def sft_train(self):
+    def sfttrain(self):
         train=True
         completed_steps=0
         progress_bar=tqdm(range(completed_steps,self.args.num_training_steps),disable=not self.accelerator.is_local_main_process) # Since there are multiple processes, we need to display only one process
@@ -289,13 +292,13 @@ class Trainer:
                         self.model.train()
                     
                     # Save checkpoint
-                    if completed_steps%self.args.checkpoint_interval==0:
-                        checkpoint_dir=os.path.join(self.expereiment_dir,f'checkpoint_{completed_steps}')
+                    '''if completed_steps%self.args.checkpoint_interval==0:
+                        checkpoint_dir=os.path.join(self.experiment_dir,f'checkpoint_{completed_steps}')
                         if self.accelerator.is_main_process:
                             progress_bar.write(f'Saving checkpoint to: {checkpoint_dir}')
                         self.accelerator.wait_for_everyone()
                         if self.accelerator.is_main_process:
-                            self.accelerator.save_state(output_dir=checkpoint_dir)
+                            self.accelerator.save_state(output_dir=checkpoint_dir)'''
                     
                     if completed_steps>=self.args.num_training_steps:
                         train=False
@@ -307,6 +310,6 @@ class Trainer:
                     completed_steps+=1
                     progress_bar.update(1)
                     accumulate_loss=0
-        checkpoint_dir=os.path.join(self.expereiment_dir,'final_model')
+        checkpoint_dir=os.path.join(self.experiment_dir,'final_model')
         self.accelerator.save_state(output_dir=checkpoint_dir)
         self.accelerator.end_training()

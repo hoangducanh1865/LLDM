@@ -1,8 +1,14 @@
-accelerate launch pretrain.py \
---experiment_name "LDM_pretraining_on_large_dataset" \
---working_directory "data/work_dir" \
---hf_model_name "answerdotai/ModernBERT-base" \
---dataset_dir "data/datasets/modernbert_large_dataset" \
---num_training_steps 100000 \
---per_gpu_batch_size 64 \
---gradient_accumulation_steps 4
+accelerate launch main.py \
+    --mode 'pretrain' \
+    --experiment_name "pretraining_on_dataset_gutenburg" \
+    --working_dir "data/work_dir" \
+    --hf_model_name "answerdotai/ModernBERT-base" \
+    --dataset_dir "kaggle/input/gutenberg/gutenberg" \
+    --num_training_steps 100000 \
+    --batch_size_per_gpu 8 \
+    --gradient_accumulation_steps 1 \
+    --learning_rate 1e-4 \
+    --evaluation_interval 25 \
+    --checkpoint_interval 50 \
+    --logging_steps 5 \
+    --log_wandb 0

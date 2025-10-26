@@ -1,0 +1,15 @@
+accelerate launch main.py \
+    --mode "sfttrain" \
+    --experiment_name "sfttraining_on_dataset_alpaca" \
+    --pretrained_checkpoint_path "data/work_dir/pretraining_on_dataset_gutenburg/final_model/model.safetensors" \
+    --working_dir "data/work_dir" \
+    --hf_model_name "answerdotai/ModernBERT-base" \
+    --dataset_dir "kaggle/input/alpaca/alpaca" \
+    --num_training_steps 50 \
+    --batch_size_per_gpu 8 \
+    --gradient_accumulation_steps 1 \
+    --learning_rate 5e-5 \
+    --evaluation_interval 15 \
+    --checkpoint_interval 25 \
+    --logging_steps 5 \
+    --log_wandb 0

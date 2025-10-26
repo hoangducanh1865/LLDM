@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from transformers import AutoModelForMaskedLM, ModernBertForMaskedLM, get_scheduler
+from transformers import AutoModelForMaskedLM, get_scheduler
 from accelerate import Accelerator
 from tqdm import tqdm
 from datasets import load_from_disk
@@ -14,6 +14,7 @@ from src.config import Config
 from src.data_manager import DataManager
 from src.tokenizer import Tokenizer
 from src.trainer import Trainer
+from src.inferencer import Inferencer
 def test_tokenizer():
     tokenizer=Tokenizer.get_tokenizer()
     text='Hello World'
@@ -34,8 +35,8 @@ def test_tokenizer():
     print(decoded)
 def load_pretrain_dataset():
     parser=Config.create_new_parser()
-    Config.add_pre_train_dataset_argument(parser)
-    args=parser.parse_args()
+    Config.add_pretrain_dataset_argument(parser)
+    args,_=parser.parse_known_args()
     DataManager.prepare_data(args)
     start_time=time.time()
     data=load_from_disk(args.data_store_dir)
@@ -43,13 +44,25 @@ def load_pretrain_dataset():
     print(f'Time to load dataset: {end_time-start_time}')
     print('Data:')
     print(data)
+def load_sfttrain_dataset():
+    parser=Config.create_new_parser()
+    Config.add_sfttrain_dataset_argument(parser)
+    args,_=parser.parse_known_args()
+    DataManager.prepare_sfttrain_dataset(args)
+    start_time=time.time()
+    data=load_from_disk(args.data_store_dir)
+    end_time=time.time()
+    print(f'Time to load SFT dataset: {end_time-start_time}')
+    print('Data:')
+    print(data)
 def pretrain():
     parser=Config.create_new_parser()
-    Config.add_pre_training_argument(parser)
-    args=parser.parse_args()
+    Config.add_pretraining_argument(parser)
+    args,_=parser.parse_known_args()
     experiment_dir=os.path.join(args.working_dir,args.experiment_name)
     accelerator=Accelerator(project_dir=experiment_dir,
-                            log_with='wandb' if args.log_wandb else None)
+                            log_with='wandb' if args.log_wandb else None,
+                            mixed_precision='fp16')
     if args.log_wandb:
         accelerator.init_trackers(args.experiment_name)
     tokenizer=Tokenizer.get_tokenizer(args.hf_model_name)
@@ -94,18 +107,18 @@ def pretrain():
                     scheduler=scheduler,
                     loss_fn=loss_fn,
                     experiment_dir=experiment_dir)
-    trainer.pre_train()
+    trainer.pretrain()
 def sfttrain():
     parser=Config.create_new_parser()
-    Config.add_sft_training_argument(parser)
-    args=parser.parse_args()
+    Config.add_sfttraining_argument(parser)
+    args,_=parser.parse_known_args()
     experiment_dir=os.path.join(args.working_dir,args.experiment_name)
     accelerator=Accelerator(project_dir=experiment_dir,
                             log_with='wandb' if args.log_wandb else None)
     if args.log_wandb:
         accelerator.init_trackers(args.experiment_name)
     tokenizer=Tokenizer.get_tokenizer(args.hf_model_name)
-    model=ModernBertForMaskedLM.from_pretrained(pretrained_model_name_or_path=args.hf_model_name)
+    model=AutoModelForMaskedLM.from_pretrained(pretrained_model_name_or_path=args.hf_model_name)
     model.resize_token_embeddings(len(tokenizer))
     
     # Load pretrained model
@@ -148,8 +161,30 @@ def sfttrain():
                     scheduler=scheduler,
                     loss_fn=loss_fn,
                     experiment_dir=experiment_dir)
-    trainer.sft_train()
+    trainer.sfttrain()
+def inference():
+    parser=Config.create_new_parser()
+    Config.add_inference_argument(parser)
+    args,_=parser.parse_known_args()
+    inferencer=Inferencer(args)
+    inferencer.inference()
 def main():
-    load_pretrain_dataset()
+    parser=Config.create_new_parser()
+    Config.add_mode_argument(parser)
+    known_args,remaining_args=parser.parse_known_args()
+    mode=known_args.mode
+    if mode=='prepare_pretrain_data':
+        load_pretrain_dataset()
+    elif mode=='prepare_sfttrain_data':
+        load_sfttrain_dataset()
+    elif mode=='pretrain':
+        pretrain()
+    elif mode=='sfttrain':
+        sfttrain()
+    elif mode=='inference':
+        inference()
+    else:
+        raise NotImplemented(f'Mode {mode} not supported')
+    
 if __name__=='__main__':
     main()

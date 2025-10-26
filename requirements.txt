@@ -1,8 +1,5 @@
-torch
-numpy
-tqdm
 safetensors
-tokenizers
-transformers
-datasets
+transformers>=4.47.0
 accelerate
+rich
+bitsandbytes
